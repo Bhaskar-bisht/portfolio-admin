@@ -1,30 +1,15 @@
 /** @format */
 
-import {
-    BooleanField,
-    BooleanInput,
-    Create,
-    Datagrid,
-    DateField,
-    Edit,
-    ImageField,
-    ImageInput,
-    List,
-    NumberInput,
-    ReferenceArrayInput,
-    required,
-    SelectArrayInput,
-    SelectInput,
-    SimpleForm,
-    TextField,
-    TextInput,
-} from "react-admin";
+import { Datagrid, Edit, List, NumberInput, required, SimpleForm, TextField, TextInput } from "react-admin";
 
 export const UserList = (props) => (
     <List {...props}>
         <Datagrid rowClick="edit">
             <TextField source="name" />
             <TextField source="email" />
+            <TextField source="bio" />
+            <TextField source="currentPosition" />
+            <TextField source="yearsOfExperience" />
         </Datagrid>
     </List>
 );

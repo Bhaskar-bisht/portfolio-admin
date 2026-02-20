@@ -9,6 +9,7 @@ import {
     ImageField,
     ImageInput,
     List,
+    NumberField,
     ReferenceArrayInput,
     required,
     SelectArrayInput,

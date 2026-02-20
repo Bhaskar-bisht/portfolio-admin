@@ -26,6 +26,26 @@ const dataProvider = {
     ...baseDataProvider,
 
     getList: (resource, params) => {
+        // ✅ Special handling for api-logs
+        if (resource === "api-logs") {
+            const { page, perPage } = params.pagination;
+            const { field, order } = params.sort;
+            const query = {
+                page: page,
+                limit: perPage,
+                sort: `${order === "DESC" ? "-" : ""}${field}`,
+                ...params.filter,
+            };
+
+            const url = `${API_URL}/admin/api-logs?${new URLSearchParams(query)}`;
+
+            return httpClient(url).then(({ json }) => ({
+                data: json.data.map((item) => ({ ...item, id: item._id })),
+                total: json.pagination?.total || json.data.length,
+            }));
+        }
+
+        // Default handling for other resources
         const { page, perPage } = params.pagination;
         const { field, order } = params.sort;
         const query = {
@@ -44,6 +64,14 @@ const dataProvider = {
     },
 
     getOne: (resource, params) => {
+        // ✅ Special handling for api-logs
+        if (resource === "api-logs") {
+            const url = `${API_URL}/admin/api-logs/${params.id}`;
+            return httpClient(url).then(({ json }) => ({
+                data: { ...json.data, id: json.data._id },
+            }));
+        }
+
         const url = `${API_URL}/admin/${resource}/${params.id}`;
 
         return httpClient(url).then(({ json }) => ({
@@ -124,6 +152,72 @@ const dataProvider = {
                 }),
             ),
         ).then(() => ({ data: params.ids }));
+    },
+
+    // ✅ CUSTOM METHOD: Get API Log Statistics
+    getApiLogStats: async (params = {}) => {
+        const queryString = new URLSearchParams(params).toString();
+        const url = `${API_URL}/admin/api-logs/stats?${queryString}`;
+
+        const token = localStorage.getItem("token");
+        const response = await fetch(url, {
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        return await response.json();
+    },
+
+    // ✅ CUSTOM METHOD: Bulk Delete by Date Range
+    deleteApiLogsByDateRange: async (startDate, endDate) => {
+        const url = `${API_URL}/admin/api-logs/bulk/date-range`;
+
+        const token = localStorage.getItem("token");
+        const response = await fetch(url, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ startDate, endDate }),
+        });
+
+        return await response.json();
+    },
+
+    // ✅ CUSTOM METHOD: Bulk Delete by Method
+    deleteApiLogsByMethod: async (method) => {
+        const url = `${API_URL}/admin/api-logs/bulk/method`;
+
+        const token = localStorage.getItem("token");
+        const response = await fetch(url, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ method }),
+        });
+
+        return await response.json();
+    },
+
+    // ✅ CUSTOM METHOD: Delete All API Logs
+    deleteAllApiLogs: async () => {
+        const url = `${API_URL}/admin/api-logs/bulk/all`;
+
+        const token = localStorage.getItem("token");
+        const response = await fetch(url, {
+            method: "DELETE",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        return await response.json();
     },
 };
 
