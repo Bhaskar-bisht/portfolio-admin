@@ -15,69 +15,32 @@ import {
     ImageField,
     ImageInput,
     NumberInput,
-    required,
     SelectInput,
     SimpleForm,
     TextInput,
+    required,
     useGetList,
 } from "react-admin";
 import { useNavigate } from "react-router-dom";
 
-// ─── Inject global CSS to force full width on Edit/Create pages ───────────────
-if (typeof document !== "undefined" && !document.getElementById("ra-fullwidth-fix")) {
-    const s = document.createElement("style");
-    s.id = "ra-fullwidth-fix";
-    s.textContent = `
-        /* Kill max-width on every react-admin form wrapper */
-        .RaEdit-main,
-        .RaCreate-main,
-        .RaEdit-main > div,
-        .RaCreate-main > div,
-        .RaEdit-main > div > div,
-        .RaCreate-main > div > div {
-            width: 100% !important;
-            max-width: 100% !important;
-        }
-        /* Kill MUI Paper/Card inside edit/create */
-        .RaEdit-main .MuiPaper-root,
-        .RaCreate-main .MuiPaper-root,
-        .RaEdit-main .MuiCard-root,
-        .RaCreate-main .MuiCard-root {
-            width: 100% !important;
-            max-width: 100% !important;
-            box-shadow: none !important;
-            background: transparent !important;
-            border-radius: 0 !important;
-        }
-        /* Kill padding on MuiCardContent */
-        .RaEdit-main .MuiCardContent-root,
-        .RaCreate-main .MuiCardContent-root {
-            padding: 0 !important;
-            width: 100% !important;
-        }
-        /* SimpleForm wrapper */
-        .RaEdit-main .RaSimpleForm-root,
-        .RaCreate-main .RaSimpleForm-root,
-        .RaEdit-main .RaSimpleForm-form,
-        .RaCreate-main .RaSimpleForm-form {
-            width: 100% !important;
-            padding: 0 !important;
-            background: transparent !important;
-            box-shadow: none !important;
-        }
-    `;
-    document.head.appendChild(s);
-}
-
-// ─── Category badge ───────────────────────────────────────────────────────────
+// ─── Badges ───────────────────────────────────────────────────────────────────
 const CAT_COLORS = {
     frontend: { bg: "#DBEAFE", color: "#1E40AF" },
     backend: { bg: "#D1FAE5", color: "#065F46" },
     database: { bg: "#FEF3C7", color: "#92400E" },
     devops: { bg: "#FFEDD5", color: "#9A3412" },
+    mobile: { bg: "#F3E8FF", color: "#6B21A8" },
+    design: { bg: "#FCE7F3", color: "#9D174D" },
+    other: { bg: "#F3F4F6", color: "#374151" },
 };
-const CatBadge = ({ value }) => {
-    const c = CAT_COLORS[value] || { bg: "#F3F4F6", color: "#374151" };
+const PROF_COLORS = {
+    beginner: { bg: "#F3F4F6", color: "#6B7280" },
+    intermediate: { bg: "#DBEAFE", color: "#1E40AF" },
+    advanced: { bg: "#D1FAE5", color: "#065F46" },
+    expert: { bg: "#FEF3C7", color: "#92400E" },
+};
+const Badge = ({ value, map }) => {
+    const c = map[value] || { bg: "#F3F4F6", color: "#374151" };
     return (
         <span
             style={{
@@ -87,14 +50,15 @@ const CatBadge = ({ value }) => {
                 fontWeight: 700,
                 background: c.bg,
                 color: c.color,
-                letterSpacing: "0.04em",
+                textTransform: "capitalize",
+                whiteSpace: "nowrap",
             }}
         >
             {value || "—"}
         </span>
     );
 };
-const BoolBadge = ({ value }) => (
+const BoolBadge = ({ value, t = "Yes", f = "No" }) => (
     <span
         style={{
             padding: "3px 10px",
@@ -105,7 +69,7 @@ const BoolBadge = ({ value }) => (
             color: value ? "#065F46" : "#6B7280",
         }}
     >
-        {value ? "Yes" : "No"}
+        {value ? t : f}
     </span>
 );
 
@@ -129,7 +93,6 @@ const PBtn = ({ onClick, disabled, children, active }) => (
             opacity: disabled ? 0.35 : 1,
             background: active ? "#2563EB" : "transparent",
             color: active ? "#fff" : "#374151",
-            transition: "background 0.15s",
         }}
         onMouseEnter={(e) => {
             if (!disabled && !active) e.currentTarget.style.background = "#F3F4F6";
@@ -141,6 +104,46 @@ const PBtn = ({ onClick, disabled, children, active }) => (
         {children}
     </button>
 );
+
+// ─── Layout Helpers ───────────────────────────────────────────────────────────
+const FormCard = ({ children }) => (
+    <div
+        style={{
+            width: "100%",
+            background: "#fff",
+            borderRadius: 12,
+            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+            border: "1px solid #F3F4F6",
+            boxSizing: "border-box",
+            overflow: "hidden",
+        }}
+    >
+        {children}
+    </div>
+);
+const Section = ({ title, subtitle }) => (
+    <div style={{ marginBottom: 18, paddingBottom: 10, borderBottom: "2px solid #F1F5F9" }}>
+        <h3
+            style={{
+                fontSize: "0.75rem",
+                fontWeight: 800,
+                color: "#2563EB",
+                margin: 0,
+                textTransform: "uppercase",
+                letterSpacing: "0.1em",
+            }}
+        >
+            {title}
+        </h3>
+        {subtitle && <p style={{ fontSize: "0.73rem", color: "#9CA3AF", margin: "3px 0 0" }}>{subtitle}</p>}
+    </div>
+);
+const Grid = ({ cols = 2, children, mb = 16 }) => (
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 16, marginBottom: mb }}>
+        {children}
+    </div>
+);
+const Full = ({ children, mb = 16 }) => <div style={{ marginBottom: mb }}>{children}</div>;
 
 // ─── TechnologyList ───────────────────────────────────────────────────────────
 export const TechnologyList = () => {
@@ -156,21 +159,101 @@ export const TechnologyList = () => {
     const columnHelper = createColumnHelper();
     const columns = useMemo(
         () => [
+            columnHelper.accessor("logo", {
+                header: "",
+                cell: (info) => {
+                    const url = info.getValue()?.url;
+                    return url ? (
+                        <img
+                            src={url}
+                            alt="logo"
+                            style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 8,
+                                objectFit: "contain",
+                                display: "block",
+                                background: "#F9FAFB",
+                                padding: 4,
+                            }}
+                        />
+                    ) : (
+                        <div
+                            style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 8,
+                                background: "#F3F4F6",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "0.6rem",
+                                color: "#9CA3AF",
+                            }}
+                        >
+                            No img
+                        </div>
+                    );
+                },
+            }),
             columnHelper.accessor("name", {
                 header: "Name",
-                cell: (info) => <span style={{ fontWeight: 500, color: "#111827" }}>{info.getValue()}</span>,
+                cell: (info) => (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {info.row.original.colorCode && (
+                            <span
+                                style={{
+                                    width: 10,
+                                    height: 10,
+                                    borderRadius: "50%",
+                                    background: info.row.original.colorCode,
+                                    display: "inline-block",
+                                    flexShrink: 0,
+                                }}
+                            />
+                        )}
+                        <div>
+                            <div style={{ fontWeight: 600, color: "#111827", fontSize: "0.875rem" }}>
+                                {info.getValue()}
+                            </div>
+                            <div style={{ fontSize: "0.7rem", color: "#9CA3AF" }}>{info.row.original.slug}</div>
+                        </div>
+                    </div>
+                ),
             }),
             columnHelper.accessor("category", {
                 header: "Category",
-                cell: (info) => <CatBadge value={info.getValue()} />,
+                cell: (info) => <Badge value={info.getValue()} map={CAT_COLORS} />,
+            }),
+            columnHelper.accessor("proficiencyLevel", {
+                header: "Proficiency",
+                cell: (info) =>
+                    info.getValue() ? (
+                        <Badge value={info.getValue()} map={PROF_COLORS} />
+                    ) : (
+                        <span style={{ color: "#D1D5DB", fontSize: "0.78rem" }}>—</span>
+                    ),
+            }),
+            columnHelper.accessor("yearsOfExperience", {
+                header: "Exp (yrs)",
+                cell: (info) =>
+                    info.getValue() != null ? (
+                        <span style={{ fontWeight: 600, color: "#374151", fontSize: "0.875rem" }}>
+                            {info.getValue()}
+                        </span>
+                    ) : (
+                        <span style={{ color: "#D1D5DB" }}>—</span>
+                    ),
             }),
             columnHelper.accessor("isFeatured", {
                 header: "Featured",
-                cell: (info) => <BoolBadge value={info.getValue()} />,
+                cell: (info) => <BoolBadge value={info.getValue()} t="⭐ Yes" f="No" />,
             }),
             columnHelper.accessor("displayOrder", {
                 header: "Order",
-                cell: (info) => <span style={{ color: "#6B7280", fontSize: "0.82rem" }}>{info.getValue()}</span>,
+                cell: (info) => (
+                    <span style={{ color: "#6B7280", fontSize: "0.82rem", fontWeight: 600 }}>{info.getValue()}</span>
+                ),
             }),
             columnHelper.display({
                 id: "actions",
@@ -224,27 +307,27 @@ export const TechnologyList = () => {
     return (
         <div style={{ padding: "28px 32px", width: "100%", boxSizing: "border-box" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-                <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#111827", margin: 0 }}>Technologies</h1>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ fontSize: "0.82rem", color: "#9CA3AF" }}>{total ?? 0} total</span>
-                    <button
-                        onClick={() => navigate("/technologies/create")}
-                        style={{
-                            padding: "8px 16px",
-                            fontSize: "0.82rem",
-                            fontWeight: 600,
-                            color: "#fff",
-                            background: "#2563EB",
-                            border: "none",
-                            borderRadius: 8,
-                            cursor: "pointer",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "#1D4ED8")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "#2563EB")}
-                    >
-                        + Add Technology
-                    </button>
+                <div>
+                    <h1 style={{ fontSize: "1.4rem", fontWeight: 700, color: "#111827", margin: 0 }}>Technologies</h1>
+                    <p style={{ fontSize: "0.8rem", color: "#9CA3AF", margin: "2px 0 0" }}>{total ?? 0} total</p>
                 </div>
+                <button
+                    onClick={() => navigate("/technologies/create")}
+                    style={{
+                        padding: "9px 18px",
+                        fontSize: "0.83rem",
+                        fontWeight: 600,
+                        color: "#fff",
+                        background: "#2563EB",
+                        border: "none",
+                        borderRadius: 8,
+                        cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#1D4ED8")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "#2563EB")}
+                >
+                    + Add Technology
+                </button>
             </div>
 
             <div
@@ -262,11 +345,11 @@ export const TechnologyList = () => {
                         <thead>
                             {table.getHeaderGroups().map((hg) => (
                                 <tr key={hg.id} style={{ background: "#F9FAFB", borderBottom: "2px solid #E5E7EB" }}>
-                                    {hg.headers.map((header) => (
+                                    {hg.headers.map((h) => (
                                         <th
-                                            key={header.id}
+                                            key={h.id}
                                             style={{
-                                                padding: "12px 20px",
+                                                padding: "12px 16px",
                                                 textAlign: "left",
                                                 fontSize: "0.72rem",
                                                 fontWeight: 700,
@@ -276,7 +359,7 @@ export const TechnologyList = () => {
                                                 whiteSpace: "nowrap",
                                             }}
                                         >
-                                            {flexRender(header.column.columnDef.header, header.getContext())}
+                                            {flexRender(h.column.columnDef.header, h.getContext())}
                                         </th>
                                     ))}
                                 </tr>
@@ -287,13 +370,13 @@ export const TechnologyList = () => {
                                 [...Array(5)].map((_, i) => (
                                     <tr key={i} style={{ borderBottom: "1px solid #F3F4F6" }}>
                                         {columns.map((_, j) => (
-                                            <td key={j} style={{ padding: "14px 20px" }}>
+                                            <td key={j} style={{ padding: "14px 16px" }}>
                                                 <div
                                                     style={{
                                                         height: 14,
                                                         background: "#F3F4F6",
                                                         borderRadius: 6,
-                                                        width: "60%",
+                                                        width: j === 1 ? "70%" : "50%",
                                                     }}
                                                 />
                                             </td>
@@ -304,12 +387,7 @@ export const TechnologyList = () => {
                                 <tr>
                                     <td
                                         colSpan={columns.length}
-                                        style={{
-                                            padding: "48px",
-                                            textAlign: "center",
-                                            color: "#9CA3AF",
-                                            fontSize: "0.875rem",
-                                        }}
+                                        style={{ padding: "48px", textAlign: "center", color: "#9CA3AF" }}
                                     >
                                         No technologies found.
                                     </td>
@@ -323,7 +401,6 @@ export const TechnologyList = () => {
                                             borderBottom: "1px solid #F3F4F6",
                                             background: i % 2 === 1 ? "#FAFAFA" : "#fff",
                                             cursor: "pointer",
-                                            transition: "background 0.12s",
                                         }}
                                         onMouseEnter={(e) => (e.currentTarget.style.background = "#EFF6FF")}
                                         onMouseLeave={(e) =>
@@ -331,7 +408,7 @@ export const TechnologyList = () => {
                                         }
                                     >
                                         {row.getVisibleCells().map((cell) => (
-                                            <td key={cell.id} style={{ padding: "13px 20px", fontSize: "0.875rem" }}>
+                                            <td key={cell.id} style={{ padding: "12px 16px", fontSize: "0.875rem" }}>
                                                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                             </td>
                                         ))}
@@ -381,61 +458,34 @@ export const TechnologyList = () => {
                             ))}
                         </select>
                     </div>
-                    <div
-                        style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "0.82rem", color: "#6B7280" }}
-                    >
-                        <span style={{ marginRight: 8 }}>{total ? `${from}–${to} of ${total}` : "0 results"}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ fontSize: "0.82rem", color: "#6B7280", marginRight: 8 }}>
+                            {total ? `${from}–${to} of ${total}` : "0"}
+                        </span>
                         <PBtn onClick={() => setPageIndex(0)} disabled={pageIndex === 0}>
-                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M11 19l-7-7 7-7M18 19l-7-7 7-7"
-                                />
-                            </svg>
+                            «
                         </PBtn>
-                        <PBtn onClick={() => setPageIndex((p) => Math.max(0, p - 1))} disabled={pageIndex === 0}>
-                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M15 19l-7-7 7-7"
-                                />
-                            </svg>
+                        <PBtn onClick={() => setPageIndex((p) => p - 1)} disabled={pageIndex === 0}>
+                            ‹
                         </PBtn>
-                        {totalPages > 0 &&
-                            [...Array(Math.min(totalPages, 5))].map((_, i) => {
-                                let page = i;
-                                if (totalPages > 5) {
-                                    if (pageIndex < 3) page = i;
-                                    else if (pageIndex > totalPages - 3) page = totalPages - 5 + i;
-                                    else page = pageIndex - 2 + i;
-                                }
-                                return (
-                                    <PBtn key={page} onClick={() => setPageIndex(page)} active={page === pageIndex}>
-                                        {page + 1}
-                                    </PBtn>
-                                );
-                            })}
-                        <PBtn
-                            onClick={() => setPageIndex((p) => Math.min(totalPages - 1, p + 1))}
-                            disabled={pageIndex >= totalPages - 1}
-                        >
-                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
+                        {[...Array(Math.min(totalPages, 5))].map((_, i) => {
+                            let page = i;
+                            if (totalPages > 5) {
+                                if (pageIndex < 3) page = i;
+                                else if (pageIndex > totalPages - 3) page = totalPages - 5 + i;
+                                else page = pageIndex - 2 + i;
+                            }
+                            return (
+                                <PBtn key={page} onClick={() => setPageIndex(page)} active={page === pageIndex}>
+                                    {page + 1}
+                                </PBtn>
+                            );
+                        })}
+                        <PBtn onClick={() => setPageIndex((p) => p + 1)} disabled={pageIndex >= totalPages - 1}>
+                            ›
                         </PBtn>
                         <PBtn onClick={() => setPageIndex(totalPages - 1)} disabled={pageIndex >= totalPages - 1}>
-                            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M13 5l7 7-7 7M6 5l7 7-7 7"
-                                />
-                            </svg>
+                            »
                         </PBtn>
                     </div>
                 </div>
@@ -444,72 +494,121 @@ export const TechnologyList = () => {
     );
 };
 
-// ─── Shared Form Content ──────────────────────────────────────────────────────
+// ─── Form Fields ──────────────────────────────────────────────────────────────
 const TechnologyFormFields = () => (
-    <div style={{ width: "100%", padding: 32, boxSizing: "border-box" }}>
-        <div style={{ marginBottom: 24, paddingBottom: 16, borderBottom: "1px solid #F3F4F6" }}>
-            <h2 style={{ fontSize: "0.95rem", fontWeight: 600, color: "#111827", margin: 0 }}>Technology Details</h2>
-            <p style={{ fontSize: "0.78rem", color: "#9CA3AF", margin: "4px 0 0" }}>
-                Fill in the technology information below
-            </p>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20, width: "100%" }}>
-            <TextInput source="name" validate={required()} label="Name" fullWidth />
+    <div style={{ padding: 32, boxSizing: "border-box", width: "100%" }}>
+        {/* ── Basic Info ── */}
+        <Section title="Basic Information" />
+        <Grid cols={2}>
+            <TextInput source="name" validate={required()} label="Technology Name *" fullWidth />
             <SelectInput
                 source="category"
                 label="Category"
+                defaultValue="other"
                 fullWidth
                 choices={[
                     { id: "frontend", name: "Frontend" },
                     { id: "backend", name: "Backend" },
                     { id: "database", name: "Database" },
                     { id: "devops", name: "DevOps" },
+                    { id: "mobile", name: "Mobile" },
+                    { id: "design", name: "Design" },
+                    { id: "other", name: "Other" },
                 ]}
             />
-        </div>
+        </Grid>
+        <Full mb={28}>
+            <TextInput source="description" label="Description" multiline minRows={3} fullWidth />
+        </Full>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20, width: "100%" }}>
-            <TextInput source="colorCode" label="Color Code" placeholder="#3B82F6" fullWidth />
-            <NumberInput source="displayOrder" label="Display Order" defaultValue={0} />
-        </div>
+        {/* ── Proficiency ── */}
+        <Section title="Proficiency & Experience" />
+        <Grid cols={2} mb={28}>
+            <SelectInput
+                source="proficiencyLevel"
+                label="Proficiency Level"
+                fullWidth
+                choices={[
+                    { id: "beginner", name: "Beginner" },
+                    { id: "intermediate", name: "Intermediate" },
+                    { id: "advanced", name: "Advanced" },
+                    { id: "expert", name: "Expert" },
+                ]}
+            />
+            <NumberInput source="yearsOfExperience" label="Years of Experience" min={0} fullWidth />
+        </Grid>
 
-        <div style={{ marginBottom: 20, width: "100%" }}>
-            <ImageInput source="logo" label="Logo Image" accept="image/*">
-                <ImageField source="src" title="title" />
-            </ImageInput>
-        </div>
+        {/* ── Appearance ── */}
+        <Section title="Appearance" subtitle="Colors used for display on portfolio" />
+        <Grid cols={3} mb={8}>
+            <TextInput source="colorCode" label="Text / Icon Color" placeholder="#3B82F6" fullWidth />
+            <TextInput source="backgroundColor" label="Background Color" placeholder="#EFF6FF" fullWidth />
+            <NumberInput source="displayOrder" label="Display Order" defaultValue={0} min={0} fullWidth />
+        </Grid>
+        {/* Color preview */}
+        <Full mb={28}>
+            <p
+                style={{
+                    fontSize: "0.72rem",
+                    color: "#9CA3AF",
+                    margin: "0 0 4px",
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                }}
+            >
+                Preview
+            </p>
+            <div style={{ fontSize: "0.8rem", color: "#6B7280" }}>
+                Color preview will appear based on the hex codes you enter above.
+            </div>
+        </Full>
 
+        {/* ── Logo ── */}
+        <Section title="Logo" subtitle="Upload technology logo (Cloudinary)" />
+        <Full mb={28}>
+            <div
+                style={{
+                    padding: 16,
+                    border: "1.5px dashed #E5E7EB",
+                    borderRadius: 10,
+                    background: "#FAFAFA",
+                    display: "inline-block",
+                    minWidth: 240,
+                }}
+            >
+                <ImageInput
+                    source="logo"
+                    label=""
+                    accept={{ "image/*": [] }}
+                    sx={{ "& .RaFileInput-dropZone": { border: "none", p: 0, background: "transparent" } }}
+                >
+                    <ImageField source="url" title="Logo" />
+                </ImageInput>
+            </div>
+        </Full>
+
+        {/* ── Links ── */}
+        <Section title="External Links" />
+        <Grid cols={2} mb={28}>
+            <TextInput source="officialUrl" label="Official Website URL" placeholder="https://..." fullWidth />
+            <TextInput source="documentationUrl" label="Documentation URL" placeholder="https://docs..." fullWidth />
+        </Grid>
+
+        {/* ── Settings ── */}
+        <Section title="Settings" />
         <div
             style={{
                 padding: "12px 16px",
                 background: "#F9FAFB",
                 borderRadius: 8,
-                border: "1px solid #F3F4F6",
+                border: "1px solid #E5E7EB",
                 display: "inline-flex",
                 alignItems: "center",
             }}
         >
-            <BooleanInput source="isFeatured" label="Mark as Featured" />
+            <BooleanInput source="isFeatured" label="Mark as Featured (shown on portfolio homepage)" />
         </div>
-    </div>
-);
-
-// ─── Wrapper card — THIS is what the user sees as the "card" ─────────────────
-// We render it OUTSIDE react-admin's form card, as a sibling via a custom layout
-const FormCard = ({ children }) => (
-    <div
-        style={{
-            width: "100%",
-            background: "#fff",
-            borderRadius: 12,
-            boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-            border: "1px solid #F3F4F6",
-            boxSizing: "border-box",
-            overflow: "hidden",
-        }}
-    >
-        {children}
     </div>
 );
 

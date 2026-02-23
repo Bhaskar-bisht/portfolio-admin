@@ -93,7 +93,7 @@ const StatusBadge = ({ code }) => {
     );
 };
 
-// ─── Main Dashboard ───────────────────────────────────────────────────────────
+// ─── Dashboard ────────────────────────────────────────────────────────────────
 const Dashboard = () => {
     const { data: users } = useGetList("users", { pagination: { page: 1, perPage: 1 } });
     const user = users?.[0];
@@ -111,18 +111,24 @@ const Dashboard = () => {
     const totalRequests = allLogs?.length || 0;
     const successCount = allLogs?.filter((l) => l.statusCode >= 200 && l.statusCode < 300).length || 0;
     const errorCount = allLogs?.filter((l) => l.statusCode >= 400).length || 0;
-    const avgResponseTime = allLogs?.length
-        ? Math.round(allLogs.reduce((s, l) => s + (l.responseTime || 0), 0) / allLogs.length)
-        : 0;
 
     return (
-        <div style={{ padding: "28px 32px", background: "#F9FAFB", minHeight: "100vh", width: "100%" }}>
+        // This div is what scrolls — no fixed height, let parent handle scroll
+        <div
+            style={{
+                padding: "28px 32px",
+                background: "#F9FAFB",
+                minHeight: "100%",
+                width: "100%",
+                boxSizing: "border-box",
+            }}
+        >
             {/* Header */}
             <div style={{ marginBottom: 28 }}>
                 <h1 style={{ fontSize: "1.6rem", fontWeight: 700, color: "#111827", margin: 0 }}>
                     👋 Welcome back{user?.name ? `, ${user.name}` : ""}!
                 </h1>
-                <p style={{ color: "#6B7280", marginTop: 4, fontSize: "0.875rem" }}>
+                <p style={{ color: "#6B7280", marginTop: 4, fontSize: "0.875rem", margin: "4px 0 0" }}>
                     Here's what's happening with your portfolio backend.
                 </p>
             </div>
@@ -219,13 +225,6 @@ const Dashboard = () => {
                     />
                     <StatCard icon={CheckCircle} label="Successful" value={successCount} color="#10B981" bg="#ECFDF5" />
                     <StatCard icon={AlertCircle} label="Errors" value={errorCount} color="#EF4444" bg="#FEF2F2" />
-                    {/* <StatCard
-                        icon={Clock}
-                        label="Avg Response"
-                        value={`${avgResponseTime}ms`}
-                        color="#F59E0B"
-                        bg="#FFFBEB"
-                    /> */}
                 </div>
             </div>
 
@@ -236,6 +235,7 @@ const Dashboard = () => {
                     borderRadius: 12,
                     boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
                     overflow: "hidden",
+                    marginBottom: 32,
                 }}
             >
                 <div

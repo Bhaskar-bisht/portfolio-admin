@@ -2,6 +2,14 @@
 
 import { Box, IconButton, Tooltip } from "@mui/material";
 import { createTheme } from "@mui/material/styles";
+import { Moon, Sun } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Admin, AppBar, defaultTheme, Resource, TitlePortal } from "react-admin";
+import authProvider from "./authProvider";
+// import { CustomLayout } from "./CustomLayout";
+import Dashboard from "./Dashboard";
+import dataProvider from "./dataProvider";
+
 import {
     Activity,
     Award,
@@ -13,20 +21,12 @@ import {
     GraduationCap,
     Mail,
     MessageSquare,
-    Moon,
     Server,
     Share2,
-    Sun,
     Tag,
     Trophy,
     Users,
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { Admin, AppBar, defaultTheme, Layout, Resource, TitlePortal } from "react-admin";
-
-import authProvider from "./authProvider";
-import Dashboard from "./Dashboard";
-import dataProvider from "./dataProvider";
 
 import { AchievementCreate, AchievementEdit, AchievementList } from "./resources/achievements";
 import { ApiLogList, ApiLogShow } from "./resources/apiLogs";
@@ -45,69 +45,6 @@ import { TechnologyCreate, TechnologyEdit, TechnologyList } from "./resources/te
 import { TestimonialCreate, TestimonialEdit, TestimonialList } from "./resources/testimonials";
 import { UserEdit, UserList } from "./resources/users";
 
-// ─── Global CSS — sidebar sticky fix + fullwidth forms ────────────────────────
-if (typeof document !== "undefined" && !document.getElementById("ra-app-fix")) {
-    const s = document.createElement("style");
-    s.id = "ra-app-fix";
-    s.textContent = `
-        /* Root layout fills viewport, no body scroll */
-        html, body, #root { height: 100%; overflow: hidden !important; }
-
-        /* Sidebar stays fixed — NEVER scrolls with content */
-        .RaSidebar-root,
-        .RaSidebar-fixed {
-            position: sticky !important;
-            top: 0 !important;
-            height: 100vh !important;
-            overflow-y: auto !important;
-            flex-shrink: 0 !important;
-            align-self: flex-start !important;
-        }
-        .RaSidebar-root::-webkit-scrollbar { display: none; }
-        .RaSidebar-root { scrollbar-width: none; }
-
-        /* Layout fills height, content area is the only scrolling element */
-        .RaLayout-root,
-        .RaLayout-appFrame { height: 100vh !important; overflow: hidden !important; }
-        .RaLayout-contentWithSidebar {
-            height: 100% !important;
-            overflow: hidden !important;
-            display: flex !important;
-        }
-        .RaLayout-content {
-            flex: 1 !important;
-            overflow-y: auto !important;
-            overflow-x: hidden !important;
-            height: 100% !important;
-            padding: 0 !important;
-        }
-
-        /* Full-width edit / create / show */
-        .RaEdit-main, .RaCreate-main, .RaShow-main,
-        .RaEdit-main > *, .RaCreate-main > *, .RaShow-main > *,
-        .RaEdit-main > * > *, .RaCreate-main > * > * {
-            width: 100% !important; max-width: 100% !important;
-        }
-        .RaEdit-main .MuiCard-root, .RaCreate-main .MuiCard-root {
-            width: 100% !important; max-width: 100% !important;
-            box-shadow: none !important; background: transparent !important;
-            border-radius: 0 !important;
-        }
-        .RaEdit-main .MuiCardContent-root,
-        .RaCreate-main .MuiCardContent-root { padding: 0 !important; }
-        .RaEdit-main .RaSimpleForm-form,
-        .RaCreate-main .RaSimpleForm-form {
-            width: 100% !important; padding: 0 !important;
-            background: transparent !important; box-shadow: none !important;
-        }
-
-        /* Scrollbar hide utility */
-        .sh { scrollbar-width: none; -ms-overflow-style: none; }
-        .sh::-webkit-scrollbar { display: none; }
-    `;
-    document.head.appendChild(s);
-}
-
 // ─── Theme ────────────────────────────────────────────────────────────────────
 const buildTheme = (dark) =>
     createTheme({
@@ -125,40 +62,6 @@ const buildTheme = (dark) =>
         },
         shape: { borderRadius: 8 },
         components: {
-            // ── Sidebar: blue background, white text ──
-            RaSidebar: {
-                styleOverrides: {
-                    root: {
-                        backgroundColor: dark ? "#1E3A5F" : "#1D4ED8",
-                        minHeight: "100vh",
-                        "& .MuiDrawer-paper": {
-                            backgroundColor: dark ? "#1E3A5F" : "#1D4ED8",
-                            borderRight: "none",
-                        },
-                    },
-                },
-            },
-            RaMenuItemLink: {
-                styleOverrides: {
-                    root: {
-                        color: "#BFDBFE",
-                        padding: "10px 16px",
-                        borderRadius: "8px",
-                        margin: "2px 8px",
-                        transition: "all 0.2s ease",
-                        "&:hover": { backgroundColor: "rgba(255,255,255,0.12)", color: "#fff" },
-                        "& .MuiListItemIcon-root": { color: "#93C5FD", minWidth: "40px" },
-                        "&.RaMenuItemLink-active": {
-                            backgroundColor: "rgba(255,255,255,0.2)",
-                            borderLeft: "4px solid #fff",
-                            color: "#fff",
-                            fontWeight: 700,
-                            "& .MuiListItemIcon-root": { color: "#fff" },
-                        },
-                    },
-                },
-            },
-            // ── AppBar ──
             RaAppBar: {
                 styleOverrides: {
                     root: {
@@ -198,7 +101,7 @@ const buildTheme = (dark) =>
         },
     });
 
-// ─── AppBar with dark/light toggle ───────────────────────────────────────────
+// ─── AppBar with dark toggle ──────────────────────────────────────────────────
 const CustomAppBar = ({ dark, onToggle }) => (
     <AppBar>
         <TitlePortal />
@@ -216,9 +119,10 @@ const App = () => {
     const [dark, setDark] = useState(false);
     const theme = useMemo(() => buildTheme(dark), [dark]);
 
-    const AppLayout = (props) => (
-        <Layout {...props} appBar={() => <CustomAppBar dark={dark} onToggle={() => setDark((d) => !d)} />} />
-    );
+    // Pass appBar with dark toggle; CustomLayout handles sidebar itself
+    // const AppLayout = (props) => (
+    //     <CustomLayout {...props} appBar={() => <CustomAppBar dark={dark} onToggle={() => setDark((d) => !d)} />} />
+    // );
 
     return (
         <Admin
@@ -227,7 +131,7 @@ const App = () => {
             title="Portfolio Admin Panel"
             theme={theme}
             dashboard={Dashboard}
-            layout={AppLayout}
+            // layout={AppLayout}
         >
             <Resource name="users" list={UserList} edit={UserEdit} icon={Users} options={{ label: "Users" }} />
             <Resource
